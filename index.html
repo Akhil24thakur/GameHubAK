@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games Hub</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #9fc0ffd8, #38599287);
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #eedf59;
+        }
+        h1 {
+            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.7);
+        }
+        #dice-result {
+            font-size: 24px; /* Example style */
+            color: #333; /* Example style */
+            background-color: rgba(255, 255, 255, 0.8); /* Example style */
+            padding: 10px; /* Example style */
+            border-radius: 5px; /* Example style */
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2); /* Example style */
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1000px;
+            margin: auto;
+        }
+        .game-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        .game-card img {
+            width: 100%;
+            height: 170px;
+            border-radius: 10px;
+        }
+        .play-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 15px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1 >Welcome to Games Hub</h1>
+    <div class="container">
+        <div class="game-card">
+            <img src="img/0x.png" alt="ZeroX">
+            <h3>ZeroX</h3>
+            <a href="zeroX.html" class="play-btn">Play Now</a>
+        </div>
+        <div class="game-card">
+            <img src="img/snake.png" alt="Snake & adder">
+
+            <h3>Snake & Ladder</h3>
+            <a href="snake.html" class="play-btn">Play Now</a>
+        </div>
+        <div class="game-card">
+            <img src="img/sudo.png" alt="SudoKu">
+            <h3>Sudoku</h3>
+            <a href="sudoku.html" class="play-btn">Play Now</a>
+        </div>
+        <div class="game-card">
+            <img src="img/chess.png" alt="Chess Game">
+            <h3>Chess</h3>
+            <a href="Chess/chess.html" class="play-btn">Play Now</a>
+        </div>
+        
+        <div class="game-card">
+            <img src="img/multi.png" alt="MCQ">
+            <h3>Quiz Game</h3>
+            <a href="mult.html" class="play-btn">Play Now</a>
+        </div>
+
+
+        <div class="game-card">
+            <img src="img/puzzle.png" alt="Puzzle">
+            <h3>Puzz1</h3>
+            <a href="puzzle.html" class="play-btn">Play Now</a>
+        </div>
+        
+    </div>
+</body>
+</html>
