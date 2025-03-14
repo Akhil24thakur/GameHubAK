@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trivia Board Game</title>
+  <style>
+    /* Base Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #ff7e5f, #feb47b);
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    #game-container {
+      max-width: 800px;
+      margin: auto;
+    }
+    h2 {
+      margin: 10px 0;
+      color: #fff;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #4CAF50;
+      color: #fff;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    /* Board Styles */
+    #board {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 5px;
+      margin-bottom: 20px;
+    }
+    .square {
+      background: linear-gradient(to top, #ffefba, #ffffff);
+      border: 2px solid #666;
+      height: 50px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #333;
+      border-radius: 8px;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    .token {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      position: absolute;
+      border: 2px solid #fff;
+    }
+    .token-0 {
+      right: 2px;
+      bottom: 2px;
+      background: red;
+    }
+    .token-1 {
+      right: 24px;
+      bottom: 2px;
+      background: blue;
+    }
+    /* Trivia Modal Styles */
+    #trivia-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    #trivia-modal.hidden {
+      display: none;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .answer-btn {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #87cefa;
+      color: #fff;
+    }
+    .answer-btn.correct {
+      background: green !important;
+    }
+    .answer-btn.wrong {
+      background: red !important;
+    }
+    #feedback {
+      font-size: 18px;
+      margin: 10px 0;
+      font-weight: bold;
+    }
+    /* Name Modal Styles */
+    #name-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 15;
+    }
+    #name-modal.hidden {
+      display: none;
+    }
+    #name-modal .modal-content {
+      background: #fff;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    #name-modal input {
+      width: 80%;
+      padding: 8px;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    /* Celebration Overlay & Confetti Styles */
+    #celebration-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+    #celebration-overlay.hidden {
+      display: none;
+    }
+    #celebration-message {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+    #play-again-btn {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #4CAF50;
+      color: #fff;
+      margin-bottom: 40px;
+    }
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: red;
+      opacity: 0.8;
+      animation: confetti-fall 3s linear infinite;
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="board"></div>
+    <h2 id="turn-info">Player 1's Turn</h2>
+    <button id="play-turn-btn">Play Turn</button>
+  </div>
+
+  <!-- Trivia Modal -->
+  <div id="trivia-modal" class="hidden">
+    <div class="modal-content">
+      <h3 id="question">Loading question...</h3>
+      <div id="answers"></div>
+      <div id="feedback"></div>
+      <button id="close-modal" class="hidden">Close</button>
+    </div>
+  </div>
+
+  <!-- Name Modal (shown at game start) -->
+  <div id="name-modal">
+    <div class="modal-content">
+      <h3>Enter your names to start the game</h3>
+      <input type="text" id="player1-name" placeholder="Player 1 name" /><br>
+      <input type="text" id="player2-name" placeholder="Player 2 name" /><br>
+      <button id="submit-names-btn">Start Game</button>
+    </div>
+  </div>
+
+  <!-- Celebration Overlay -->
+  <div id="celebration-overlay" class="hidden">
+    <h1 id="celebration-message"></h1>
+    <button id="play-again-btn">Play Again</button>
+    <div id="confetti-container"></div>
+  </div>
+
+  <script>
+    // Game settings: Board from 0 to 50
+    const totalSquares = 51;
+    const board = document.getElementById('board');
+    const turnInfo = document.getElementById('turn-info');
+    const playTurnBtn = document.getElementById('play-turn-btn');
+    const triviaModal = document.getElementById('trivia-modal');
+    const questionElem = document.getElementById('question');
+    const answersElem = document.getElementById('answers');
+    const feedbackElem = document.getElementById('feedback');
+    const closeModalBtn = document.getElementById('close-modal');
+
+    // Name Modal elements
+    const nameModal = document.getElementById('name-modal');
+    const player1Input = document.getElementById('player1-name');
+    const player2Input = document.getElementById('player2-name');
+    const submitNamesBtn = document.getElementById('submit-names-btn');
+
+    // Celebration elements
+    const celebrationOverlay = document.getElementById('celebration-overlay');
+    const celebrationMessage = document.getElementById('celebration-message');
+    const playAgainBtn = document.getElementById('play-again-btn');
+    const confettiContainer = document.getElementById('confetti-container');
+
+    let players = [
+      { name: "Player 1", position: 0 },
+      { name: "Player 2", position: 0 }
+    ];
+    let currentPlayerIndex = 0;
+    let askedQuestions = []; // To prevent repeated questions
+
+    // Backup question (if API fails or repeated too many times)
+    const backupQuestion = {
+      question: "What is 2 + 2?",
+      correct_answer: "4",
+      incorrect_answers: ["3", "5"]
+    };
+
+    function createBoard() {
+      board.innerHTML = '';
+      for (let i = 0; i < totalSquares; i++) {
+        const square = document.createElement('div');
+        square.classList.add('square');
+        square.dataset.index = i;
+        square.textContent = i;
+        board.appendChild(square);
+      }
+      updateBoard();
+    }
+
+    function updateBoard() {
+      document.querySelectorAll('.square').forEach(square => {
+        square.innerHTML = square.textContent;
+      });
+      players.forEach((player, index) => {
+        const square = document.querySelector(`.square[data-index="${player.position}"]`);
+        if (square) {
+          const token = document.createElement('div');
+          token.classList.add('token', `token-${index}`);
+          square.appendChild(token);
+        }
+      });
+    }
+
+    async function fetchTrivia(attempt = 1) {
+      playTurnBtn.disabled = true;
+      try {
+        const res = await fetch('https://opentdb.com/api.php?amount=1&type=multiple&difficulty=easy');
+        const data = await res.json();
+        if (!data.results || data.results.length === 0) throw new Error("No question received");
+        const trivia = data.results[0];
+        if (askedQuestions.includes(trivia.question)) {
+          if (attempt < 5) {
+            return fetchTrivia(attempt + 1);
+          } else {
+            console.warn("Repeated question after multiple attempts. Using backup.");
+            return displayQuestion(backupQuestion);
+          }
+        }
+        askedQuestions.push(trivia.question);
+        displayQuestion(trivia);
+      } catch (error) {
+        console.warn("Trivia API failed, using backup question.", error);
+        displayQuestion(backupQuestion);
+      }
+    }
+
+    function displayQuestion(trivia) {
+      let options = [trivia.correct_answer, ...trivia.incorrect_answers];
+      options.sort(() => Math.random() - 0.5);
+      
+      questionElem.innerHTML = trivia.question;
+      answersElem.innerHTML = '';
+      feedbackElem.textContent = '';
+      closeModalBtn.classList.add('hidden');
+      
+      options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.classList.add('answer-btn');
+        btn.textContent = option;
+        btn.onclick = () => handleAnswer(option, trivia.correct_answer, btn);
+        answersElem.appendChild(btn);
+      });
+      
+      triviaModal.classList.remove('hidden');
+    }
+
+    function handleAnswer(selected, correct, button) {
+      const answerButtons = document.querySelectorAll('.answer-btn');
+      answerButtons.forEach(btn => btn.disabled = true);
+      
+      if (selected === correct) {
+        button.classList.add('correct');
+        feedbackElem.textContent = "Correct! You move 5 steps.";
+        setTimeout(() => {
+          movePlayer(5);
+          closeModalBtn.classList.remove('hidden');
+        }, 1000);
+      } else {
+        button.classList.add('wrong');
+        feedbackElem.textContent = "Wrong answer. No move.";
+        answerButtons.forEach(btn => {
+          if (btn.textContent === correct) btn.classList.add('correct');
+        });
+        closeModalBtn.classList.remove('hidden');
+      }
+    }
+
+    function movePlayer(steps) {
+      players[currentPlayerIndex].position += steps;
+      if (players[currentPlayerIndex].position >= totalSquares - 1) {
+        celebrateWin(players[currentPlayerIndex].name);
+        return;
+      }
+      updateBoard();
+    }
+
+    function switchTurn() {
+      currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+      turnInfo.textContent = `${players[currentPlayerIndex].name}'s Turn`;
+    }
+
+    function celebrateWin(winnerName) {
+      celebrationMessage.textContent = `Congratulations, ${winnerName} wins!`;
+      celebrationOverlay.classList.remove('hidden');
+      generateConfetti();
+    }
+
+    function generateConfetti() {
+      confettiContainer.innerHTML = '';
+      for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.classList.add('confetti');
+        confetti.style.backgroundColor = randomColor();
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.top = Math.random() * 100 + '%';
+        confetti.style.animationDelay = Math.random() * 3 + 's';
+        confettiContainer.appendChild(confetti);
+      }
+    }
+
+    function randomColor() {
+      const colors = ['#ff0', '#f0f', '#0ff', '#0f0', '#f00', '#00f'];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function resetGame() {
+      players.forEach(player => player.position = 0);
+      askedQuestions = [];
+      updateBoard();
+      turnInfo.textContent = `${players[currentPlayerIndex].name}'s Turn`;
+      playTurnBtn.disabled = false;
+      celebrationOverlay.classList.add('hidden');
+      confettiContainer.innerHTML = '';
+    }
+
+    // Event Listeners
+    submitNamesBtn.addEventListener('click', () => {
+      const name1 = player1Input.value.trim() || "Player 1";
+      const name2 = player2Input.value.trim() || "Player 2";
+      players[0].name = name1;
+      players[1].name = name2;
+      turnInfo.textContent = `${players[currentPlayerIndex].name}'s Turn`;
+      nameModal.classList.add('hidden');
+      playTurnBtn.disabled = false;
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      triviaModal.classList.add('hidden');
+      switchTurn();
+      playTurnBtn.disabled = false;
+    });
+
+    playTurnBtn.addEventListener('click', fetchTrivia);
+    playAgainBtn.addEventListener('click', resetGame);
+
+    createBoard();
+    // Show name modal on load so user can set names before starting.
+    nameModal.classList.remove('hidden');
+    playTurnBtn.disabled = true;
+
+    
+    // ... (keep previous constants and helper functions)
+
+    // Updated backup questions array
+    const backupQuestions = [
+      {
+        question: "What is 2 + 2?",
+        correct_answer: "4",
+        incorrect_answers: ["3", "5"]
+      },
+      {
+        question: "What is the capital of France?",
+        correct_answer: "Paris",
+        incorrect_answers: ["London", "Berlin"]
+      }
+    ];
+    let backupIndex = 0;
+
+    async function fetchTrivia(attempt = 1) {
+      playTurnBtn.disabled = true;
+      try {
+        const res = await fetch('https://opentdb.com/api.php?amount=1&type=multiple&difficulty=easy');
+        const data = await res.json();
+        if (!data.results || data.results.length === 0) throw new Error("No question received");
+        const trivia = data.results[0];
+        
+        if (askedQuestions.includes(trivia.question)) {
+          if (attempt < 5) {
+            return fetchTrivia(attempt + 1);
+          } else {
+            return useBackupQuestion();
+          }
+        }
+        
+        askedQuestions.push(trivia.question);
+        displayQuestion(trivia);
+      } catch (error) {
+        console.warn("Trivia API failed, using backup question.", error);
+        useBackupQuestion();
+      }
+    }
+
+    function useBackupQuestion() {
+      // Find first unused backup question
+      const availableBackup = backupQuestions.find(q => !askedQuestions.includes(q.question));
+      
+      if (!availableBackup) {
+        // No more backup questions available
+        feedbackElem.textContent = "No new questions available. Moving 0 steps.";
+        triviaModal.classList.remove('hidden');
+        closeModalBtn.classList.remove('hidden');
+        return;
+      }
+      
+      askedQuestions.push(availableBackup.question);
+      displayQuestion(availableBackup);
+    }
+
+    // ... (keep rest of the code the same)
+
+  </script>
+</body>
+</html>
