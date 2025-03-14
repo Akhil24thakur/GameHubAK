@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Escape the Puzzle</title>
+  <style>
+    /* Overall page styling */
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #fff;
+    }
+    /* Container for game elements */
+    #gameContainer {
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 10px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+    }
+    canvas {
+      background-color: #fff;
+      height: 500px;
+      width: 600px;
+      border: 4px solid #000;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+    #controls {
+      margin-top: 10px;
+    }
+    button {
+      font-size: 1em;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      background-color: #00ff51;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #1e3c72;
+    }
+    #info {
+      margin-top: 10px;
+      font-size: 1.1em;
+    }
+
+    /* Confetti styles for celebration */
+    #confettiContainer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      display: none; /* hidden by default */
+      z-index: 9999;
+    }
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: red;
+      opacity: 0.8;
+      animation: fall linear infinite;
+    }
+    @keyframes fall {
+      0% {
+        transform: translateY(-100vh) rotate(0deg);
+      }
+      100% {
+        transform: translateY(100vh) rotate(360deg);
+      }
+    }
+    /* Show confetti when win class is added */
+    .win #confettiContainer {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <h1>Escape the Puzzle</h1>
+    <canvas id="mazeCanvas"></canvas>
+    <div id="controls">
+      <button id="newGameBtn">New Game</button>
+    </div>
+    <div id="info">
+      Move the Dot using the Arrow.
+    </div>
+  </div>
+
+  <!-- Confetti container -->
+  <div id="confettiContainer"></div>
+
+  <script>
+    // Canvas & grid settings
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    const cols = 20;
+    const rows = 20;
+    const cellSize = 30;
+    canvas.width = cols * cellSize;
+    canvas.height = rows * cellSize;
+
+    let grid = [];
+    let player = { i: 0, j: 0 };
+    let animating = false; // Prevents input during animation
+
+    // Drag variables
+    let isDragging = false;
+    let dragOffsetX = 0, dragOffsetY = 0;
+    let currentDragX = 0, currentDragY = 0;
+    
+    // Cell constructor: each cell has 4 walls [top, right, bottom, left]
+    function Cell(i, j) {
+      this.i = i;
+      this.j = j;
+      this.walls = [true, true, true, true];
+      this.visited = false;
+    }
+
+    // Returns index of cell in the grid array or -1 if out of bounds
+    function index(i, j) {
+      if (i < 0 || j < 0 || i >= cols || j >= rows) return -1;
+      return i + j * cols;
+    }
+
+    // Create grid of cells
+    function createGrid() {
+      grid = [];
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++) {
+          grid.push(new Cell(i, j));
+        }
+      }
+    }
+
+    // Maze generation using recursive backtracking
+    function generateMaze() {
+      grid.forEach(cell => cell.visited = false);
+      let stack = [];
+      let current = grid[0];
+      current.visited = true;
+      let totalCells = grid.length;
+      let visitedCells = 1;
+      while (visitedCells < totalCells) {
+        let next = checkNeighbors(current);
+        if (next) {
+          next.visited = true;
+          visitedCells++;
+          stack.push(current);
+          removeWalls(current, next);
+          current = next;
+        } else if (stack.length > 0) {
+          current = stack.pop();
+        }
+      }
+    }
+
+    // Returns a random unvisited neighbor
+    function checkNeighbors(cell) {
+      let neighbors = [];
+      let top    = grid[index(cell.i, cell.j - 1)];
+      let right  = grid[index(cell.i + 1, cell.j)];
+      let bottom = grid[index(cell.i, cell.j + 1)];
+      let left   = grid[index(cell.i - 1, cell.j)];
+      if (top && !top.visited) neighbors.push(top);
+      if (right && !right.visited) neighbors.push(right);
+      if (bottom && !bottom.visited) neighbors.push(bottom);
+      if (left && !left.visited) neighbors.push(left);
+      if (neighbors.length > 0) {
+        return neighbors[Math.floor(Math.random() * neighbors.length)];
+      }
+      return undefined;
+    }
+
+    // Remove walls between two adjacent cells
+    function removeWalls(a, b) {
+      let x = a.i - b.i;
+      if (x === 1) {
+        a.walls[3] = false;
+        b.walls[1] = false;
+      } else if (x === -1) {
+        a.walls[1] = false;
+        b.walls[3] = false;
+      }
+      let y = a.j - b.j;
+      if (y === 1) {
+        a.walls[0] = false;
+        b.walls[2] = false;
+      } else if (y === -1) {
+        a.walls[2] = false;
+        b.walls[0] = false;
+      }
+    }
+
+    // Draw the maze grid and walls
+    function drawMaze() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      grid.forEach(cell => {
+        let x = cell.i * cellSize;
+        let y = cell.j * cellSize;
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 2;
+        if (cell.walls[0]) {
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + cellSize, y);
+          ctx.stroke();
+        }
+        if (cell.walls[1]) {
+          ctx.beginPath();
+          ctx.moveTo(x + cellSize, y);
+          ctx.lineTo(x + cellSize, y + cellSize);
+          ctx.stroke();
+        }
+        if (cell.walls[2]) {
+          ctx.beginPath();
+          ctx.moveTo(x + cellSize, y + cellSize);
+          ctx.lineTo(x, y + cellSize);
+          ctx.stroke();
+        }
+        if (cell.walls[3]) {
+          ctx.beginPath();
+          ctx.moveTo(x, y + cellSize);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
+      });
+      // Draw exit cell (bottom-right) with a light green highlight
+      ctx.fillStyle = "lightgreen";
+      ctx.fillRect((cols - 1) * cellSize + 4, (rows - 1) * cellSize + 4, cellSize - 8, cellSize - 8);
+    }
+
+    // Draw the player's dot. If x and y are provided, draw at those pixel coordinates.
+    function drawPlayer(x, y) {
+      let centerX, centerY;
+      if (x !== undefined && y !== undefined) {
+        centerX = x;
+        centerY = y;
+      } else {
+        centerX = player.i * cellSize + cellSize / 2;
+        centerY = player.j * cellSize + cellSize / 2;
+      }
+      ctx.fillStyle = "red";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, cellSize / 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Redraw the complete scene
+    function draw() {
+      drawMaze();
+      // If dragging, use the current drag coordinates; otherwise, draw at cell center.
+      if (isDragging) {
+        drawPlayer(currentDragX, currentDragY);
+      } else {
+        drawPlayer();
+      }
+    }
+
+    // Animation: smoothly move the dot from (startX, startY) to (endX, endY)
+    function animateMove(startX, startY, endX, endY, callback) {
+      const duration = 150; // in milliseconds (faster than before)
+      const startTime = performance.now();
+      function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const t = Math.min(elapsed / duration, 1); // progress (0 to 1)
+        const currentX = startX + (endX - startX) * t;
+        const currentY = startY + (endY - startY) * t;
+        drawMaze();
+        drawPlayer(currentX, currentY);
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          callback();
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    // Check if the move from cell (i, j) in the given direction is allowed
+    function canMove(i, j, direction) {
+      let cell = grid[index(i, j)];
+      if (!cell) return false;
+      if (direction === "ArrowUp" && !cell.walls[0] && j > 0) return true;
+      if (direction === "ArrowRight" && !cell.walls[1] && i < cols - 1) return true;
+      if (direction === "ArrowDown" && !cell.walls[2] && j < rows - 1) return true;
+      if (direction === "ArrowLeft" && !cell.walls[3] && i > 0) return true;
+      return false;
+    }
+
+    // Determine the direction from the original cell to the target cell
+    function getDirection(from, to) {
+      let di = to.i - from.i;
+      let dj = to.j - from.j;
+      if (di === 1 && dj === 0) return "ArrowRight";
+      if (di === -1 && dj === 0) return "ArrowLeft";
+      if (dj === 1 && di === 0) return "ArrowDown";
+      if (dj === -1 && di === 0) return "ArrowUp";
+      return "";
+    }
+
+    // ----- Drag and Drop Movement with Wall Constraints -----
+    canvas.addEventListener("mousedown", function(e) {
+      if (animating) return; // ignore input during animation
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const playerCenterX = player.i * cellSize + cellSize / 2;
+      const playerCenterY = player.j * cellSize + cellSize / 2;
+      const dx = mouseX - playerCenterX;
+      const dy = mouseY - playerCenterY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < cellSize / 4 + 5) { // clicking near the dot
+        isDragging = true;
+        dragOffsetX = dx;
+        dragOffsetY = dy;
+        currentDragX = playerCenterX;
+        currentDragY = playerCenterY;
+      }
+    });
+
+    canvas.addEventListener("mousemove", function(e) {
+      if (animating || !isDragging) return;
+      const rect = canvas.getBoundingClientRect();
+      let rawX = e.clientX - rect.left - dragOffsetX;
+      let rawY = e.clientY - rect.top - dragOffsetY;
+      const playerCenterX = player.i * cellSize + cellSize / 2;
+      const playerCenterY = player.j * cellSize + cellSize / 2;
+      let allowedXMin = playerCenterX;
+      let allowedXMax = playerCenterX;
+      let allowedYMin = playerCenterY;
+      let allowedYMax = playerCenterY;
+      const currentCell = grid[index(player.i, player.j)];
+      if (currentCell) {
+        if (!currentCell.walls[3] && player.i > 0) {
+          allowedXMin = (player.i - 1) * cellSize + cellSize / 2;
+        }
+        if (!currentCell.walls[1] && player.i < cols - 1) {
+          allowedXMax = (player.i + 1) * cellSize + cellSize / 2;
+        }
+        if (!currentCell.walls[0] && player.j > 0) {
+          allowedYMin = (player.j - 1) * cellSize + cellSize / 2;
+        }
+        if (!currentCell.walls[2] && player.j < rows - 1) {
+          allowedYMax = (player.j + 1) * cellSize + cellSize / 2;
+        }
+      }
+      let deltaX = rawX - playerCenterX;
+      let deltaY = rawY - playerCenterY;
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        let clampedX = Math.max(allowedXMin, Math.min(rawX, allowedXMax));
+        currentDragX = clampedX;
+        currentDragY = playerCenterY;
+      } else {
+        let clampedY = Math.max(allowedYMin, Math.min(rawY, allowedYMax));
+        currentDragY = clampedY;
+        currentDragX = playerCenterX;
+      }
+      draw();
+    });
+
+    canvas.addEventListener("mouseup", function(e) {
+      if (animating || !isDragging) return;
+      isDragging = false;
+      const rect = canvas.getBoundingClientRect();
+      const dropX = e.clientX - rect.left;
+      const dropY = e.clientY - rect.top;
+      const targetI = Math.floor(dropX / cellSize);
+      const targetJ = Math.floor(dropY / cellSize);
+      
+      // Allow move only if the target cell is adjacent (one cell away)
+      if (Math.abs(targetI - player.i) + Math.abs(targetJ - player.j) === 1) {
+        const fromCell = { i: player.i, j: player.j };
+        const toCell = { i: targetI, j: targetJ };
+        const direction = getDirection(fromCell, toCell);
+        if (canMove(player.i, player.j, direction)) {
+          const startX = currentDragX;
+          const startY = currentDragY;
+          const endX = targetI * cellSize + cellSize / 2;
+          const endY = targetJ * cellSize + cellSize / 2;
+          animating = true;
+          animateMove(startX, startY, endX, endY, () => {
+            player.i = targetI;
+            player.j = targetJ;
+            animating = false;
+            draw();
+            checkWin();
+          });
+          return;
+        }
+      }
+      // If move not allowed, animate back to the original cell center.
+      const originalX = player.i * cellSize + cellSize / 2;
+      const originalY = player.j * cellSize + cellSize / 2;
+      animating = true;
+      animateMove(currentDragX, currentDragY, originalX, originalY, () => {
+        animating = false;
+        draw();
+      });
+    });
+
+    // Optional: Keyboard arrow key support for movement
+    window.addEventListener("keydown", function(e) {
+      if (animating || isDragging) return;
+      if (["ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft"].includes(e.key)) {
+        let newI = player.i;
+        let newJ = player.j;
+        if (canMove(player.i, player.j, e.key)) {
+          if (e.key === "ArrowUp") newJ--;
+          if (e.key === "ArrowRight") newI++;
+          if (e.key === "ArrowDown") newJ++;
+          if (e.key === "ArrowLeft") newI--;
+          const startX = player.i * cellSize + cellSize / 2;
+          const startY = player.j * cellSize + cellSize / 2;
+          const endX = newI * cellSize + cellSize / 2;
+          const endY = newJ * cellSize + cellSize / 2;
+          animating = true;
+          animateMove(startX, startY, endX, endY, () => {
+            player.i = newI;
+            player.j = newJ;
+            animating = false;
+            draw();
+            checkWin();
+          });
+        }
+      }
+    });
+
+    // Function to show confetti celebration
+    function showConfetti() {
+      document.body.classList.add("win");
+      const confettiContainer = document.getElementById("confettiContainer");
+      for (let i = 0; i < 100; i++) {
+        let confetti = document.createElement("div");
+        confetti.classList.add("confetti");
+        confetti.style.left = Math.random() * 100 + "vw";
+        confetti.style.backgroundColor = ["red", "blue", "yellow", "green", "purple"][Math.floor(Math.random() * 5)];
+        confetti.style.animationDuration = Math.random() * 2 + 2 + "s";
+        confetti.style.top = "-10px";
+        confettiContainer.appendChild(confetti);
+      }
+      setTimeout(() => {
+        document.body.classList.remove("win");
+        confettiContainer.innerHTML = ""; // Remove confetti after animation
+      }, 4000);
+    }
+
+    // Check for win condition: reaching the exit (bottom-right cell)
+    function checkWin() {
+      if (player.i === cols - 1 && player.j === rows - 1) {
+        setTimeout(() => {
+          alert("Congratulations! You escaped the labyrinth!");
+          showConfetti();
+          resetGame();
+        }, 100);
+      }
+    }
+
+    // Reset the game: generate a new maze and reset player position
+    function resetGame() {
+      createGrid();
+      generateMaze();
+      player = { i: 0, j: 0 };
+      draw();
+    }
+
+    // New Game button event listener
+    document.getElementById("newGameBtn").addEventListener("click", resetGame);
+
+    // Initialize game
+    createGrid();
+    generateMaze();
+    draw();
+  </script>
+</body>
+</html>
