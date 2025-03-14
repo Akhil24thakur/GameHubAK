@@ -16,9 +16,24 @@
       color: #fff;
     }
     /* Container for game elements */
-    #gameContainer {
-      text-align: center;
-    }
+    #arrowControls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 10px;
+}
+
+#arrowControls div {
+  display: flex;
+  justify-content: center;
+  margin: 0px 0; /* Add vertical spacing between rows of buttons */
+}
+
+#arrowControls button:hover {
+  background-color: #1e3c72; /* Change background color on hover */
+}
+      
+    
     h1 {
       margin-bottom: 10px;
       font-size: 2.5em;
@@ -41,7 +56,7 @@
       border: none;
       border-radius: 4px;
       background-color: #00ff51;
-      color: #fff;
+      color: #000000;
       cursor: pointer;
       transition: background-color 0.3s;
     }
@@ -85,6 +100,36 @@
     .win #confettiContainer {
       display: block;
     }
+
+    #arrowControls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    #arrowControls div {
+      display: flex;
+      justify-content: center;
+      margin: 5px 0; /* Add vertical spacing between rows of buttons */
+    }
+
+    #arrowControls button {
+      width: 50px; /* Set a fixed width for the buttons */
+      height: 50px; /* Set a fixed height for the buttons */
+      font-size: 1.5em; /* Increase font size for better visibility */
+      margin: 20px; /* Increase margin for more space around buttons */
+      background-color: #00ff51; /* Button background color */
+      color: #fff; /* Button text color */
+      border: none; /* Remove default border */
+      border-radius: 5px; /* Rounded corners */
+      cursor: pointer; /* Pointer cursor on hover */
+      transition: background-color 0.3s; /* Smooth background color transition */
+    }
+
+    #arrowControls button:hover {
+      background-color: #1e3c72; /* Change background color on hover */
+    }
   </style>
 </head>
 <body>
@@ -93,6 +138,14 @@
     <canvas id="mazeCanvas"></canvas>
     <div id="controls">
       <button id="newGameBtn">New Game</button>
+      <div id="arrowControls">
+        <button id="upArrow">↑</button>
+        <div>
+          <button id="leftArrow">←</button>
+          <button id="rightArrow">→</button>
+        </div>
+        <button id="downArrow">↓</button>
+      </div>
     </div>
     <div id="info">
       Move the Dot using the Arrow.
@@ -437,6 +490,45 @@
         }
       }
     });
+
+    // Add event listeners for arrow buttons
+    document.getElementById("upArrow").addEventListener("click", function() {
+      movePlayer("ArrowUp");
+    });
+    document.getElementById("downArrow").addEventListener("click", function() {
+      movePlayer("ArrowDown");
+    });
+    document.getElementById("leftArrow").addEventListener("click", function() {
+      movePlayer("ArrowLeft");
+    });
+    document.getElementById("rightArrow").addEventListener("click", function() {
+      movePlayer("ArrowRight");
+    });
+
+    // Function to move the player based on direction
+    function movePlayer(direction) {
+      if (animating || isDragging) return;
+      let newI = player.i;
+      let newJ = player.j;
+      if (canMove(player.i, player.j, direction)) {
+        if (direction === "ArrowUp") newJ--;
+        if (direction === "ArrowRight") newI++;
+        if (direction === "ArrowDown") newJ++;
+        if (direction === "ArrowLeft") newI--;
+        const startX = player.i * cellSize + cellSize / 2;
+        const startY = player.j * cellSize + cellSize / 2;
+        const endX = newI * cellSize + cellSize / 2;
+        const endY = newJ * cellSize + cellSize / 2;
+        animating = true;
+        animateMove(startX, startY, endX, endY, () => {
+          player.i = newI;
+          player.j = newJ;
+          animating = false;
+          draw();
+          checkWin();
+        });
+      }
+    }
 
     // Function to show confetti celebration
     function showConfetti() {
